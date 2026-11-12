@@ -1,0 +1,1126 @@
+<title>Partigennemgang</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: et analysebord til venstre (bræt, evalueringsbjælke, trækkort, graf) og et resultatpanel til højre (opsummering, trækliste, PGN). Ét spor på telefon. */
+:root{
+  --bg:#302e2b; --panel:#262522; --fg:#ece9e4; --muted:#a8a49d; --line:#45423e; --soft:#3a3835;
+  --sq-light:#ebecd0; --sq-dark:#739552; --coord-light:#739552; --coord-dark:#ebecd0;
+  --accent:#81b64c; --last:#ffff33; --check:#ff3d62;
+  --bar-w:#f1efea; --bar-b:#1c1b19; --bar-edge:#45423e;
+  --g-w:#d9d5ce; --g-b:#1c1b19; --g-mid:#6e6a63;
+  --k-brill:#25c2b9; --k-great:#6c9ee0; --k-best:#86c24f; --k-good:#9db681; --k-book:#b9946b;
+  --k-inacc:#f2c230; --k-mistake:#f7964a; --k-miss:#f0695d; --k-blunder:#ec4236;
+  color-scheme:dark;
+  --on-k:#ffffff; --on-k-dark:#2a2000;
+  --f-display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#302e2b; --panel:#262522; --fg:#ece9e4; --muted:#a8a49d; --line:#45423e; --soft:#3a3835;
+  --sq-light:#ebecd0; --sq-dark:#739552; --coord-light:#739552; --coord-dark:#ebecd0;
+  --accent:#81b64c; --last:#ffff33; --check:#ff3d62;
+  --bar-w:#f1efea; --bar-b:#1c1b19; --bar-edge:#45423e;
+  --g-w:#d9d5ce; --g-b:#1c1b19; --g-mid:#6e6a63;
+  --k-brill:#25c2b9; --k-great:#6c9ee0; --k-best:#86c24f; --k-good:#9db681; --k-book:#b9946b;
+  --k-inacc:#f2c230; --k-mistake:#f7964a; --k-miss:#f0695d; --k-blunder:#ec4236;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#302e2b; --panel:#262522; --fg:#ece9e4; --muted:#a8a49d; --line:#45423e; --soft:#3a3835;
+  --sq-light:#ebecd0; --sq-dark:#739552; --coord-light:#739552; --coord-dark:#ebecd0;
+  --accent:#81b64c; --last:#ffff33; --check:#ff3d62;
+  --bar-w:#f1efea; --bar-b:#1c1b19; --bar-edge:#45423e;
+  --g-w:#d9d5ce; --g-b:#1c1b19; --g-mid:#6e6a63;
+  --k-brill:#25c2b9; --k-great:#6c9ee0; --k-best:#86c24f; --k-good:#9db681; --k-book:#b9946b;
+  --k-inacc:#f2c230; --k-mistake:#f7964a; --k-miss:#f0695d; --k-blunder:#ec4236;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 40px}
+.app{max-width:1180px;margin:0 auto;display:grid;gap:20px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,3.6vw,34px);line-height:1.08;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+.sub{color:var(--muted);margin:6px 0 0}
+.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:end;justify-content:space-between}
+.top > div:first-child{min-width:0;flex:1 1 420px}
+.prog{flex:0 1 320px;min-width:220px;display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.prog-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.prog-bar span{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+.prog.done .prog-bar span{background:var(--k-best)}
+
+.grid{display:grid;grid-template-columns:minmax(0,580px) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}}
+.left,.right{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+
+/* Spillere */
+.player{display:flex;align-items:center;gap:10px;font-weight:700;min-width:0;padding-left:30px}
+.player .dot{width:14px;height:14px;border-radius:3px;flex:none;border:1px solid var(--bar-edge)}
+.player .dot.w{background:var(--bar-w)} .player .dot.b{background:var(--bar-b)}
+.player .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.player .elo{color:var(--muted);font-weight:400;font-family:var(--f-mono);font-size:13px}
+.player .acc{margin-left:auto;font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:6px;background:var(--soft);border:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Bræt og evalueringsbjælke */
+.board-wrap{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
+.evalbar{position:relative;border-radius:5px;overflow:hidden;background:var(--bar-b);border:1px solid var(--bar-edge)}
+.eb-fill{position:absolute;left:0;right:0;bottom:0;height:50%;background:var(--bar-w);transition:height .35s ease}
+.evalbar.flip .eb-fill{bottom:auto;top:0}
+.eb-lbl{position:absolute;left:0;right:0;text-align:center;font-family:var(--f-mono);font-weight:700;font-size:10px;line-height:1;z-index:1;letter-spacing:-.04em}
+.eb-lbl.lo{bottom:5px} .eb-lbl.hi{top:5px}
+.eb-lbl.onw{color:var(--bar-b)} .eb-lbl.onb{color:var(--bar-w)}
+.board-box{position:relative;width:100%;aspect-ratio:1;max-width:100%}
+.board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:6px;overflow:hidden;
+  box-shadow:0 1px 0 var(--line),0 12px 32px -18px rgba(10,20,40,.55);user-select:none}
+.sq{position:relative;container-type:size}
+.sq.l{background:var(--sq-light)} .sq.d{background:var(--sq-dark)}
+.tint{position:absolute;inset:0;pointer-events:none;background:var(--last);opacity:.5}
+.sq.check::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--check) 18%,transparent 72%);opacity:.85}
+.pc{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible;filter:drop-shadow(0 1.5px 0 rgba(0,0,0,.2))}
+/* Brikkerne er SVG-symboler, farvet via variabler: --pf fyld, --ps omrids, --pd detaljestreger */
+.pc.w{--pf:url(#pgw);--ps:#4a4644;--pd:#8f8b88}
+.pc.b{--pf:url(#pgb);--ps:#2b2826;--pd:#8c8886}
+.co{position:absolute;font-family:var(--f-body);font-size:max(9px,15cqh);font-weight:700;pointer-events:none;z-index:2;opacity:.9;line-height:1.2}
+.co.f{right:3px;bottom:1px} .co.r{left:3px;top:2px}
+.sq.l .co{color:var(--coord-light)} .sq.d .co{color:var(--coord-dark)}
+.sq .badge{position:absolute;top:3%;right:3%;width:38%;height:38%;z-index:4;font-size:20cqh;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+/* Egne træk: valgt felt, prikker på lovlige felter og brikken der trækkes */
+.board{touch-action:none;cursor:pointer}
+.sq.sel::after{content:"";position:absolute;inset:0;background:var(--last);opacity:.5;pointer-events:none}
+.hint{position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(circle,rgba(0,0,0,.2) 16%,transparent 17%)}
+.hint.cap{background:radial-gradient(circle,transparent 76%,rgba(0,0,0,.2) 77%)}
+.sq.src .pc{opacity:.3}
+.pc.ghost{inset:auto;left:0;top:0;width:12.5%;height:12.5%;z-index:7;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+
+/* Variant */
+.varcard{display:grid;gap:10px}
+.varcard[hidden]{display:none}
+.var-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.var-head h2{margin:0}
+.var-line{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;font-family:var(--f-mono);font-size:13.5px}
+.var-line .no{color:var(--muted);padding-left:4px}
+.var-line .mv{width:auto}
+
+/* Klassificeringsmærker */
+.badge{display:inline-grid;place-items:center;border-radius:50%;background:var(--kc);color:var(--kf,var(--on-k));
+  font-family:var(--f-mono);font-weight:700;line-height:1;letter-spacing:-.06em;flex:none}
+.badge svg{width:62%;height:62%;fill:currentColor}
+.badge.sm{width:18px;height:18px;font-size:10px}
+.badge.md{width:26px;height:26px;font-size:13px}
+
+/* Kontroller */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-left:30px}
+button,select{font-family:var(--f-body);font-size:14px;font-weight:700;color:var(--fg);background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:8px 12px;cursor:pointer;min-height:40px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible,.mv:focus-visible,.graph:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nav{display:flex;gap:6px}
+.nav button{width:46px;padding:0;font-family:var(--f-mono);font-size:16px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#ffffff}
+.tog{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);margin-left:auto;cursor:pointer}
+.tog input{width:18px;height:18px;accent-color:var(--accent)}
+.tog.snd{margin-left:0}
+
+/* Trækkort */
+.movecard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;min-height:92px}
+.movecard .badge{grid-row:span 2}
+.mc-title{font-family:var(--f-display);font-size:19px;font-weight:700;line-height:1.25}
+.mc-title b{font-family:var(--f-mono);font-size:17px}
+.mc-eval{font-family:var(--f-mono);font-weight:700;font-size:15px;padding:4px 9px;border-radius:6px;border:1px solid var(--bar-edge);grid-row:span 2;align-self:start;font-variant-numeric:tabular-nums}
+.mc-eval.wv{background:var(--bar-w);color:var(--bar-b)} .mc-eval.bv{background:var(--bar-b);color:var(--bar-w)}
+.mc-text{color:var(--muted);font-size:14px}
+.mc-line{grid-column:1/-1;font-family:var(--f-mono);font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:6px;overflow-wrap:anywhere}
+.mc-line b{color:var(--fg);font-weight:700}
+
+/* Graf */
+.graph{position:relative;height:120px;cursor:pointer;border-radius:6px;overflow:hidden;touch-action:pan-y;background:var(--g-b)}
+.graph svg{display:block;width:100%;height:100%}
+.graph-note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+
+/* Opsummering */
+.sum{display:grid;grid-template-columns:minmax(0,1fr) 5.2em 5.2em;gap:0 8px;align-items:center;font-variant-numeric:tabular-nums}
+.sum .hd{font-size:12.5px;font-weight:700;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:6px}
+.sum .accrow{display:contents}
+.sum .big{font-family:var(--f-display);font-size:30px;font-weight:700;text-align:center;line-height:1.1;padding:4px 0 2px;border-radius:8px}
+.sum .big.w{background:var(--bar-w);color:var(--bar-b);border:1px solid var(--bar-edge)}
+.sum .big.b{background:var(--bar-b);color:var(--bar-w);border:1px solid var(--bar-edge)}
+.sum .lbl{font-weight:700}
+.sum .row{display:contents}
+.sum .row > *{padding:5px 0;border-top:1px solid var(--line)}
+.sum .cat{display:flex;align-items:center;gap:8px;min-width:0}
+.sum .n{text-align:center;font-family:var(--f-mono);font-weight:700;color:var(--kc)}
+.sum .n.z{color:var(--muted);opacity:.45;font-weight:500}
+.sum .first > *{border-top:0;padding-top:12px}
+
+/* Trækliste */
+.movelist{position:relative;display:grid;grid-template-columns:2.6em minmax(0,1fr) minmax(0,1fr);gap:2px 6px;max-height:330px;overflow:auto;
+  font-family:var(--f-mono);font-size:13.5px;font-variant-numeric:tabular-nums;padding-right:4px}
+.movelist .no{color:var(--muted);padding:5px 0;text-align:right}
+.mv{display:flex;align-items:center;gap:7px;border:0;background:transparent;border-radius:6px;padding:4px 6px;min-height:30px;font-family:var(--f-mono);
+  font-size:13.5px;font-weight:500;color:var(--fg);cursor:pointer;text-align:left;width:100%}
+.mv:hover{background:var(--soft)}
+.mv.active{background:color-mix(in srgb,var(--accent) 18%,transparent);font-weight:700}
+.mv .ph{width:18px;height:18px;flex:none}
+.mv.empty{cursor:default;color:var(--muted)}
+
+/* Indlæsning */
+.load label{font-size:13px;font-weight:700;color:var(--muted)}
+textarea{width:100%;box-sizing:border-box;min-height:150px;resize:vertical;font-family:var(--f-mono);font-size:12.5px;line-height:1.45;
+  background:var(--soft);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:6px}
+.row-btn{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.row-btn label{display:flex;align-items:center;gap:6px}
+.msg{font-size:13.5px;margin:10px 0 0;min-height:1.4em;color:var(--muted)}
+.msg.err{color:var(--k-blunder);font-weight:700}
+.foot{font-size:13px;color:var(--muted);max-width:75ch}
+.foot p{margin:0 0 6px}
+@media (max-width:520px){
+  .player,.controls{padding-left:0}
+  .board-wrap{grid-template-columns:16px minmax(0,1fr);gap:6px}
+  .eb-lbl{font-size:8px}
+  .tog{margin-left:0}
+  .mc-title{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){.eb-fill,.prog-bar span{transition:none}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="pgw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#f4f3f2"/><stop offset="1" stop-color="#cfcccb"/></linearGradient>
+    <linearGradient id="pgb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#76726f"/><stop offset=".5" stop-color="#5a5654"/><stop offset="1" stop-color="#3e3b39"/></linearGradient>
+    <symbol id="pc-p" viewBox="0 0 100 100"><g style="fill:var(--pf);stroke:var(--ps);stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round"><path d="M31 77C31 64 39 58 42 54H58C61 58 69 64 69 77Z"/><rect x="24" y="74" width="52" height="13" rx="5"/><rect x="36" y="47" width="28" height="9" rx="4.5"/><circle cx="50" cy="34" r="14"/></g></symbol>
+    <symbol id="pc-r" viewBox="0 0 100 100"><g style="fill:var(--pf);stroke:var(--ps);stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round"><path d="M32 76 35 46H65L68 76Z"/><rect x="20" y="75" width="60" height="13" rx="5"/><rect x="28" y="40" width="44" height="9" rx="3"/><path d="M27 18H38V25H45V18H55V25H62V18H73V41H27Z"/></g><path d="M38 60H62" style="fill:none;stroke:var(--pd);stroke-width:3;stroke-linecap:round"/></symbol>
+    <symbol id="pc-b" viewBox="0 0 100 100"><g style="fill:var(--pf);stroke:var(--ps);stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round"><path d="M33 76C33 66 41 60 43 56H57C59 60 67 66 67 76Z"/><rect x="24" y="75" width="52" height="13" rx="5"/><rect x="36" y="50" width="28" height="8" rx="4"/><path d="M50 18C37 27 32 37 36 47 38 51 62 51 64 47 68 37 63 27 50 18Z"/><circle cx="50" cy="13" r="5"/></g><path d="M56 28 46 39" style="fill:none;stroke:var(--pd);stroke-width:3;stroke-linecap:round"/></symbol>
+    <symbol id="pc-n" viewBox="0 0 100 100"><g style="fill:var(--pf);stroke:var(--ps);stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round"><path d="M34 76C34 64 40 56 48 50 42 49 36 52 30 56 24 57 20 52 22 46 26 38 34 30 40 25L42 15 48 21 54 13 58 22C70 28 76 42 75 58L74 76Z"/><rect x="24" y="75" width="54" height="13" rx="5"/></g><path d="M63 31C68 39 70 49 69 61" style="fill:none;stroke:var(--pd);stroke-width:3;stroke-linecap:round"/><circle cx="45" cy="33" r="3.2" style="fill:var(--ps);stroke:none"/><circle cx="27.5" cy="49" r="1.8" style="fill:var(--ps);stroke:none"/></symbol>
+    <symbol id="pc-q" viewBox="0 0 100 100"><g style="fill:var(--pf);stroke:var(--ps);stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round"><path d="M30 76C31 66 28 52 24 38L36 53 38 30 46 50 50 25 54 50 62 30 64 53 76 38C72 52 69 66 70 76Z"/><rect x="22" y="75" width="56" height="13" rx="5"/><rect x="30" y="64" width="40" height="8" rx="3"/><circle cx="24" cy="36" r="5"/><circle cx="38" cy="28" r="5"/><circle cx="50" cy="22" r="5"/><circle cx="62" cy="28" r="5"/><circle cx="76" cy="36" r="5"/></g></symbol>
+    <symbol id="pc-k" viewBox="0 0 100 100"><g style="fill:var(--pf);stroke:var(--ps);stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round"><path d="M47 11H53V17H59V23H53V34H47V23H41V17H47Z"/><path d="M50 51C45 45 44 39 50 32 56 39 55 45 50 51Z"/><path d="M31 76C30 68 22 60 23 50 24 40 37 36 50 50 63 36 76 40 77 50 78 60 70 68 69 76Z"/><rect x="22" y="75" width="56" height="13" rx="5"/><rect x="30" y="64" width="40" height="8" rx="3"/></g></symbol>
+  </defs>
+</svg>
+<div class="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Partigennemgang · Stockfish 10</p>
+      <h1 id="gameTitle">Indlæser parti…</h1>
+      <p class="sub" id="gameMeta"></p>
+    </div>
+    <div class="prog" id="prog" aria-live="polite">
+      <div class="prog-bar"><span id="progFill"></span></div>
+      <span id="progText">Starter motoren…</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="left" aria-label="Bræt">
+      <div class="player" id="plTop"></div>
+      <div class="board-wrap">
+        <div class="evalbar" id="evalbar" aria-hidden="true"><div class="eb-fill" id="ebFill"></div><span class="eb-lbl" id="ebLbl"></span></div>
+        <div class="board-box"><div class="board" id="board" role="img" aria-label="Skakbræt"></div><svg class="arrows" id="arrows" viewBox="0 0 800 800" aria-hidden="true"></svg></div>
+      </div>
+      <div class="player" id="plBot"></div>
+      <div class="controls">
+        <div class="nav">
+          <button id="bStart" title="Til start (Home / ↑)" aria-label="Til start">⏮&#xFE0E;</button>
+          <button id="bPrev" title="Forrige træk (←)" aria-label="Forrige træk">◀&#xFE0E;</button>
+          <button id="bNext" title="Næste træk (→)" aria-label="Næste træk">▶&#xFE0E;</button>
+          <button id="bEnd" title="Til slut (End / ↓)" aria-label="Til slut">⏭&#xFE0E;</button>
+        </div>
+        <button id="bFlip">Vend brættet</button>
+        <label class="tog" for="optArrows"><input type="checkbox" id="optArrows" checked> Vis motorens pile</label>
+        <label class="tog snd" for="optSound"><input type="checkbox" id="optSound" checked> Lyd</label>
+      </div>
+      <div class="card varcard" id="varCard" hidden></div>
+      <div class="card movecard" id="moveCard" aria-live="polite"></div>
+      <div class="card">
+        <h2>Evaluering gennem partiet</h2>
+        <div class="graph" id="graph" tabindex="0" role="slider" aria-label="Evalueringsgraf, vælg træk" aria-valuemin="0"></div>
+        <p class="graph-note">Lys flade er hvids vinderchance. Klik eller træk i grafen for at hoppe til et træk.</p>
+      </div>
+    </section>
+
+    <section class="right" aria-label="Analyse">
+      <div class="card"><h2>Opsummering</h2><div id="summary"></div></div>
+      <div class="card"><h2>Træk</h2><div class="movelist" id="moveList"></div></div>
+      <div class="card load">
+        <h2>Indlæs et parti</h2>
+        <label for="pgn">Indsæt PGN (engelske eller danske brikbogstaver)</label>
+        <textarea id="pgn" spellcheck="false"></textarea>
+        <div class="row-btn">
+          <button class="primary" id="loadBtn">Analysér parti</button>
+          <button id="sampleBtn">Eksempelparti</button>
+          <label for="depth" style="font-size:14px;color:var(--muted)">Dybde
+            <select id="depth">
+              <option value="12">12 · hurtig</option>
+              <option value="16" selected>16 · normal</option>
+              <option value="20">20 · grundig</option>
+            </select>
+          </label>
+        </div>
+        <p class="msg" id="loadMsg"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Hvert træk sammenlignes med Stockfish' bedste træk i samme stilling. Tabet måles i vinderchance (0–100 %): under 1 point er bedste træk, under 5 godt, under 10 en unøjagtighed, under 20 en fejl og derover en bommert. Brillant er et bedste træk, der ofrer materiale uden at stå dårligere. Fremragende er det eneste gode træk. Overset betyder, at modstanderen lige havde fejlet, og at chancen ikke blev udnyttet.</p>
+    <p>Præcision pr. træk følger samme kurve som Lichess bruger, og spillerens præcision er gennemsnittet. Motoren kører lokalt i din browser: Stockfish 10, fri software under GPL v3, kompileret til WebAssembly af Niklas Fiekas.</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+(function(){
+'use strict';
+const SF_BASE='https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/';
+const DEFAULT_FEN='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const VS='︎';
+const FILES='abcdefgh';
+const DK={K:'K',Q:'D',R:'T',B:'L',N:'S'};
+const dk=s=>s.replace(/[KQRBN]/g,c=>DK[c]);
+const VAL={p:1,n:3,b:3,r:5,q:9,k:0};
+const BOOK_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.2C3.3 2.4 5.6 2.5 7.3 3.6v10C5.6 12.6 3.3 12.5 1.5 13.3zM14.5 3.2c-1.8-.8-4.1-.7-5.8.4v10c1.7-1 4-1.1 5.8-.3z"/></svg>';
+
+const CLS={
+  brillant:{n:'Brillant',s:'!!',v:'--k-brill'},
+  fremragende:{n:'Fremragende',s:'!',v:'--k-great'},
+  bedste:{n:'Bedste',s:'★',v:'--k-best'},
+  godt:{n:'Godt',s:'✓',v:'--k-good'},
+  bog:{n:'Bogtræk',s:BOOK_SVG,v:'--k-book'},
+  unoj:{n:'Unøjagtighed',s:'?!',v:'--k-inacc',dark:true},
+  fejl:{n:'Fejl',s:'?',v:'--k-mistake'},
+  overset:{n:'Overset',s:'✕',v:'--k-miss'},
+  bommert:{n:'Bommert',s:'??',v:'--k-blunder'}
+};
+const ORDER=['brillant','fremragende','bedste','godt','bog','unoj','fejl','overset','bommert'];
+function badge(k,size){
+  const c=CLS[k];
+  return `<span class="badge ${size||''}" style="--kc:var(${c.v});${c.dark?'--kf:var(--on-k-dark)':''}" title="${c.n}" aria-label="${c.n}">${c.s.startsWith('<')?c.s:c.s+VS}</span>`;
+}
+
+const SAMPLE_PGN=`[Event "Parti i operaen"]
+[Site "Paris"]
+[Date "1858.??.??"]
+[White "Paul Morphy"]
+[Black "Hertug Karl og grev Isouard"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7
+8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7
+14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
+
+const BOOK_LINES=[
+ 'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O',
+ 'e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6',
+ 'e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O f6',
+ 'e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+',
+ 'e4 e5 Nf3 Nc6 Bc4 Bc5 b4 Bxb4 c3 Ba5',
+ 'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5',
+ 'e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Be7',
+ 'e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Nf6 Nxc6 bxc6',
+ 'e4 e5 Nf3 Nc6 d4 exd4 Bc4 Bc5',
+ 'e4 e5 Nf3 Nc6 Nc3 Nf6 Bb5 Bb4',
+ 'e4 e5 Nf3 d6 d4 exd4 Nxd4 Nf6 Nc3 Be7',
+ 'e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Nf6',
+ 'e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5',
+ 'e4 e5 f4 exf4 Nf3 g5',
+ 'e4 e5 Nc3 Nf6 f4 d5',
+ 'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5',
+ 'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O',
+ 'e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 Nf6 Nc3 e5 Ndb5 d6',
+ 'e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nc6 Nc3 Qc7',
+ 'e4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7',
+ 'e4 c5 c3 Nf6 e5 Nd5 d4 cxd4',
+ 'e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7',
+ 'e4 e6 d4 d5 Nd2 Nf6 e5 Nfd7',
+ 'e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6',
+ 'e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6',
+ 'e4 c6 d4 d5 e5 Bf5 Nf3 e6',
+ 'e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6',
+ 'e4 d6 d4 Nf6 Nc3 g6 f4 Bg7',
+ 'e4 Nf6 e5 Nd5 d4 d6 Nf3 g6',
+ 'e4 g6 d4 Bg7 Nc3 d6',
+ 'd4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7',
+ 'd4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5',
+ 'd4 d5 c4 dxc4 Nf3 Nf6 e3 e6 Bxc4 c5',
+ 'd4 d5 Bf4 Nf6 e3 c5 Nf3 Nc6',
+ 'd4 d5 Nf3 Nf6 c4 e6',
+ 'd4 Nf6 c4 e6 Nc3 Bb4 e3 O-O Bd3 d5',
+ 'd4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5',
+ 'd4 Nf6 c4 g6 Nc3 d5 cxd5 Nxd5 e4 Nxc3 bxc3 Bg7',
+ 'd4 Nf6 c4 e6 Nf3 b6 g3 Ba6',
+ 'd4 Nf6 c4 c5 d5 e6 Nc3 exd5 cxd5 d6',
+ 'd4 Nf6 Nf3 e6 Bf4 c5 e3',
+ 'd4 f5 g3 Nf6 Bg2 g6',
+ 'c4 e5 Nc3 Nf6 Nf3 Nc6 g3 d5',
+ 'c4 Nf6 Nc3 e6 e4 d5',
+ 'Nf3 d5 g3 Nf6 Bg2 c6 O-O Bg4',
+ 'Nf3 Nf6 c4 g6 Nc3 Bg7'
+];
+const posKey=fen=>fen.split(' ').slice(0,4).join(' ');
+let BOOK=null;
+function buildBook(){
+  BOOK=new Set();
+  for(const line of BOOK_LINES){
+    const g=new Chess();
+    for(const san of line.split(' ')){ if(!g.move(san)) break; BOOK.add(posKey(g.fen())); }
+  }
+}
+
+/* ---------- Evaluering og vinderchance ---------- */
+// e: {type:'cp',v} eller {type:'mate',v,side}, altid set fra hvid
+function wcWhite(e){
+  if(!e) return 50;
+  if(e.type==='mate') return e.side==='w'?100:0;
+  return 50+50*(2/(1+Math.exp(-0.00368208*e.v))-1);
+}
+const wcFor=(e,c)=>c==='w'?wcWhite(e):100-wcWhite(e);
+function evalText(e){
+  if(!e) return '…';
+  if(e.type==='mate') return e.v===0?(e.side==='w'?'1-0':'0-1'):(e.side==='w'?'M':'−M')+e.v;
+  const v=e.v/100;
+  const t=Math.abs(v).toFixed(Math.abs(v)>=10?0:1).replace('.',',');
+  return (v>0.04?'+':v<-0.04?'−':'')+t;
+}
+const fmtPct=x=>x.toFixed(1).replace('.',',');
+const moveAcc=loss=>Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669));
+
+/* ---------- Motor ---------- */
+// WebAssembly-udgaven er ca. 40 gange hurtigere end asm.js. Dens .wasm-fil ligger ved siden af siden
+// (CDN'en må ikke hentes med fetch), og hvis den ikke kan bruges, falder vi tilbage til asm.js fra CDN'en.
+let WASM_BYTES=null;
+function wasmBytes(){
+  if(!WASM_BYTES) WASM_BYTES=(async()=>{
+    if(typeof WebAssembly!=='object') return null;
+    // Lokalt (file: eller data:) hentes filen fra CDN'en, i den udgivne side ligger den ved siden af
+    const url=/^https?:$/.test(location.protocol)?'stockfish.wasm':SF_BASE+'stockfish.wasm';
+    try{ const r=await fetch(url); return r.ok?await r.arrayBuffer():null; }catch(e){ return null; }
+  })();
+  return WASM_BYTES;
+}
+const WASM_WORKER=`var q=[];self.onmessage=function(e){
+  if(e.data&&e.data.wasm){var b=e.data.wasm;
+    try{new WebAssembly.Module(new Uint8Array([0,97,115,109,1,0,0,0]));}catch(err){postMessage('__nowasm');return;}
+    self.fetch=function(){return Promise.resolve(new Response(b,{headers:{'Content-Type':'application/wasm'}}));};
+    importScripts(${JSON.stringify(SF_BASE+'stockfish.wasm.js')});
+    var m=q;q=null;m.forEach(function(x){onmessage({data:x});});
+  }else if(q)q.push(e.data);};`;
+const ASM_WORKER=`importScripts(${JSON.stringify(SF_BASE+'stockfish.js')});`;
+async function createEngine(){
+  const bytes=await wasmBytes();
+  if(bytes){
+    const eng=new Engine(WASM_WORKER,'wasm');
+    eng.send({wasm:bytes});
+    try{ await eng.init(20000); return eng; }catch(e){ eng.terminate(); }
+  }
+  const eng=new Engine(ASM_WORKER,'asm');
+  await eng.init(60000);
+  return eng;
+}
+class Engine{
+  constructor(src,kind){
+    this.kind=kind;
+    this.url=URL.createObjectURL(new Blob([src],{type:'application/javascript'}));
+    this.w=new Worker(this.url);
+    this.waiter=null; this.lineCb=null; this.dead=false;
+    this.w.onmessage=e=>{ if(e.data==='__nowasm') this.fail(new Error('nowasm')); else this.onLine(String(e.data)); };
+    this.w.onerror=e=>{ if(e.preventDefault) e.preventDefault(); this.fail(new Error('worker')); };
+  }
+  fail(err){ this.dead=true; if(this.waiter){ const w=this.waiter; this.waiter=null; w.rej(err); } }
+  send(c){ this.w.postMessage(c); }
+  waitFor(prefix,ms){
+    return new Promise((res,rej)=>{
+      if(this.dead) return rej(new Error('dead'));
+      const t=ms?setTimeout(()=>{ if(this.waiter&&this.waiter.res===res){ this.waiter=null; rej(new Error('timeout')); } },ms):0;
+      this.waiter={prefix,res:v=>{clearTimeout(t);res(v);},rej:e=>{clearTimeout(t);rej(e);}};
+    });
+  }
+  onLine(line){
+    if(this.lineCb) this.lineCb(line);
+    if(this.waiter && line.startsWith(this.waiter.prefix)){ const w=this.waiter; this.waiter=null; w.res(line); }
+  }
+  async init(ms){
+    const p=this.waitFor('uciok',ms); this.send('uci'); await p;
+    this.send('setoption name MultiPV value 2');
+    this.send('setoption name Hash value 32');
+    const q=this.waitFor('readyok',30000); this.send('isready'); await q;
+  }
+  async analyse(fen,depth){
+    const lines={};
+    this.lineCb=line=>{
+      if(!line.startsWith('info ')||line.indexOf(' pv ')<0||line.indexOf(' score ')<0) return;
+      if(/ (lowerbound|upperbound)/.test(line)) return;
+      const t=line.split(' ');
+      const g=k=>{const i=t.indexOf(k);return i<0?null:t[i+1];};
+      const mpv=+(g('multipv')||1), d=+g('depth');
+      const si=t.indexOf('score'); const kind=t[si+1], val=+t[si+2];
+      const pv=t.slice(t.indexOf('pv')+1);
+      if(!lines[mpv]||d>=lines[mpv].d) lines[mpv]={d,kind,val,pv};
+    };
+    const p=this.waitFor('bestmove');
+    this.send('position fen '+fen);
+    this.send('go depth '+depth);
+    const bm=await p; this.lineCb=null;
+    return {best:bm.split(' ')[1],lines};
+  }
+  terminate(){ this.dead=true; try{this.w.terminate();}catch(e){} URL.revokeObjectURL(this.url); }
+}
+function toWhite(line,stm){
+  if(!line) return null;
+  if(line.kind==='mate'){
+    const mover=line.val>0?stm:(stm==='w'?'b':'w');
+    return {type:'mate',v:Math.abs(line.val),side:mover};
+  }
+  return {type:'cp',v:stm==='w'?line.val:-line.val};
+}
+
+/* ---------- Parti ---------- */
+// v: brugerens variant {base,nodes,idx} eller null; nodes[0] er partiets stilling ved base. sel: valgt felt på brættet.
+const S={game:null,cur:0,flip:false,arrows:true,sound:true,gen:0,engine:null,depth:16,analysing:false,v:null,sel:null};
+
+function normalisePGN(text){
+  const lines=text.replace(/\r\n?/g,'\n').split('\n');
+  const head=[],body=[];
+  for(const l of lines){ const s=l.trim(); if(!s) continue; if(/^\[.*\]$/.test(s)&&!body.length) head.push(s); else body.push(s); }
+  return (head.length?head.join('\n')+'\n\n':'')+body.join(' ');
+}
+function fromDanish(pgn){
+  const i=pgn.indexOf('\n\n'); const head=i>=0?pgn.slice(0,i+2):''; const body=i>=0?pgn.slice(i+2):pgn;
+  return head+body.replace(/\{[^}]*\}|[DTLS]/g,m=>m.length>1?m:({D:'Q',T:'R',L:'B',S:'N'})[m]);
+}
+function tryLoad(t){ try{ const c=new Chess(); return c.load_pgn(t,{sloppy:true})?c:null; }catch(e){ return null; } }
+
+function buildGame(text){
+  const norm=normalisePGN(text);
+  if(!norm.trim()) return {err:'Feltet er tomt. Indsæt et parti i PGN-format.'};
+  let c=tryLoad(norm);
+  if(!c||!c.history().length){ const c2=tryLoad(fromDanish(norm)); if(c2&&c2.history().length) c=c2; }
+  if(!c) return {err:'PGN\'en kunne ikke læses. Tjek at alle træk er lovlige og skrevet i standardnotation, fx 1. e4 e5 2. Nf3.'};
+  const hist=c.history({verbose:true});
+  if(!hist.length) return {err:'Der er ingen træk i partiet.'};
+  const headers=c.header()||{};
+  const startFen=headers.FEN||DEFAULT_FEN;
+  const g=new Chess(startFen);
+  const pos=[mkPos(g)], moves=[null];
+  let inBook=!headers.FEN;
+  for(const h of hist){
+    const prevCap=moves.length>1?moves[moves.length-1]:null;
+    const mv=g.move({from:h.from,to:h.to,promotion:h.promotion});
+    if(!mv) break;
+    inBook=inBook&&BOOK.has(posKey(g.fen()));
+    moves.push({san:mv.san,dsan:dk(mv.san),uci:mv.from+mv.to+(mv.promotion||''),from:mv.from,to:mv.to,color:mv.color,
+      piece:mv.piece,captured:mv.captured||null,book:inBook,
+      recapture:!!(prevCap&&prevCap.captured&&prevCap.to===mv.to&&mv.captured),cls:null,loss:null,acc:null});
+    pos.push(mkPos(g));
+  }
+  return {game:{headers,startFen,pos,moves}};
+}
+function mkPos(g){
+  const fen=g.fen(), turn=g.turn();
+  const p={fen,turn,legal:g.moves().length,check:g.in_check(),eval:null,best:null,pv:[],second:null,done:false,terminal:false};
+  if(g.in_checkmate()){ p.terminal=true; p.eval={type:'mate',v:0,side:turn==='w'?'b':'w'}; }
+  else if(g.in_stalemate()||g.insufficient_material()){ p.terminal=true; p.eval={type:'cp',v:0}; }
+  if(p.check){ const b=g.board(); for(let r=0;r<8;r++)for(let f=0;f<8;f++){const q=b[r][f]; if(q&&q.type==='k'&&q.color===turn) p.ksq=FILES[f]+(8-r);} }
+  return p;
+}
+
+/* ---------- Klassificering ---------- */
+function isSacrifice(m,afterFen){
+  if(m.piece==='p'||m.piece==='k') return false;
+  const g=new Chess(afterFen);
+  if(g.game_over()) return false;
+  const caps=g.moves({verbose:true}).filter(x=>x.to===m.to);
+  if(!caps.length) return false;
+  caps.sort((a,b)=>VAL[a.piece]-VAL[b.piece]);
+  const a=caps[0];
+  g.move({from:a.from,to:a.to,promotion:a.promotion});
+  const defended=g.moves({verbose:true}).some(x=>x.to===m.to);
+  const offered=VAL[m.piece]-(m.captured?VAL[m.captured]:0)-(defended?VAL[a.piece]:0);
+  return offered>=2;
+}
+function classify(G,i){
+  const m=G.moves[i], P=G.pos[i-1], Q=G.pos[i], c=m.color;
+  const before=wcFor(P.eval,c), after=wcFor(Q.eval,c);
+  const isBest=m.uci===P.best;
+  let loss=isBest?0:Math.max(0,before-after);
+  let cls;
+  if(m.book) cls='bog';
+  else if(isBest||loss<1){
+    cls='bedste';
+    if(after>=50&&isSacrifice(m,Q.fen)) cls='brillant';
+    else if(isBest&&P.second&&P.legal>1&&!m.recapture&&before-wcFor(P.second,c)>=12&&before<97) cls='fremragende';
+  }
+  else if(loss<5) cls='godt';
+  else if(loss<10) cls='unoj';
+  else if(loss<20) cls='fejl';
+  else cls='bommert';
+  if((cls==='fejl'||cls==='bommert')&&i>=2){
+    const prev=G.moves[i-1];
+    if(prev&&(prev.cls==='fejl'||prev.cls==='bommert'||prev.cls==='overset')&&after>=wcFor(G.pos[i-2].eval,c)-3) cls='overset';
+  }
+  m.cls=cls; m.loss=loss; m.acc=moveAcc(loss);
+}
+function classifyAll(){
+  const G=S.game;
+  for(let i=1;i<G.moves.length;i++){
+    if(G.pos[i-1].done&&G.pos[i].done){ if(!G.moves[i].cls) classify(G,i); }
+    else break;
+  }
+}
+function playerStats(color){
+  const G=S.game, counts={}; let sum=0,n=0,total=0;
+  ORDER.forEach(k=>counts[k]=0);
+  for(let i=1;i<G.moves.length;i++){
+    const m=G.moves[i]; if(m.color!==color) continue; total++;
+    if(!m.cls) continue; counts[m.cls]++; sum+=m.acc; n++;
+  }
+  return {counts,acc:n?sum/n:null,n,total};
+}
+
+/* ---------- Analyse ---------- */
+async function analyse(){
+  const gen=++S.gen;
+  if(S.engine){ S.engine.terminate(); S.engine=null; }
+  const G=S.game;
+  S.analysing=true; S.doneCount=0; S.engineKind=null; progress();
+  let eng;
+  try{ eng=await createEngine(); }
+  catch(e){
+    if(gen!==S.gen) return;
+    S.analysing=false;
+    setProg(0,'Motoren kunne ikke indlæses. Tjek din internetforbindelse og prøv igen.',false,true);
+    return;
+  }
+  if(gen!==S.gen){ eng.terminate(); return; }
+  S.engine=eng;
+  // asm.js er for langsom til de dybe søgninger, så dybden begrænses
+  const depth=eng.kind==='wasm'?S.depth:Math.min(S.depth,12);
+  S.usedDepth=depth; S.engineKind=eng.kind; progress();
+  for(let i=0;i<G.pos.length;i++){
+    if(gen!==S.gen) return;
+    const p=G.pos[i];
+    if(!p.terminal){
+      let r;
+      try{ r=await eng.analyse(p.fen,depth); }
+      catch(e){ if(gen!==S.gen) return; S.analysing=false; setProg(i/G.pos.length,'Motoren stoppede uventet. Klik på Analysér parti for at prøve igen.',false,true); return; }
+      if(gen!==S.gen) return;
+      const l1=r.lines[1], l2=r.lines[2];
+      p.eval=toWhite(l1,p.turn)||{type:'cp',v:0};
+      p.best=r.best&&r.best!=='(none)'?r.best:null;
+      p.pv=l1?l1.pv:[];
+      p.second=l2?toWhite(l2,p.turn):null;
+    }
+    p.done=true; S.doneCount=i+1;
+    classifyAll(); progress(); renderAnalysis();
+  }
+  S.analysing=false; progress();
+  eng.terminate(); if(S.engine===eng) S.engine=null;
+}
+function setProg(frac,text,done,err){
+  $('progFill').style.width=(frac*100).toFixed(1)+'%';
+  const t=$('progText'); t.textContent=text; t.style.color=err?'var(--k-blunder)':'';
+  $('prog').classList.toggle('done',!!done);
+}
+function progress(){
+  const G=S.game, n=G.pos.length, d=S.doneCount||0;
+  const kind=S.engineKind==='asm'?' · asm.js (langsom)':'';
+  if(S.analysing) setProg(d/n,!S.engineKind?'Starter motoren…':`Analyserer stilling ${Math.min(d+1,n)} af ${n} · dybde ${S.usedDepth}${kind}`);
+  else if(d>=n) setProg(1,`Analyse færdig · ${n-1} halvtræk · dybde ${S.usedDepth}${kind}`,true);
+}
+
+/* ---------- Visning ---------- */
+const $=id=>document.getElementById(id);
+function parseFen(fen){
+  const map={}; const rows=fen.split(' ')[0].split('/');
+  rows.forEach((row,ri)=>{ let f=0; for(const ch of row){ if(/\d/.test(ch)) f+=+ch; else { map[FILES[f]+(8-ri)]=ch; f++; } } });
+  return map;
+}
+function sqXY(sq){
+  const f=sq.charCodeAt(0)-97, r=+sq[1]-1;
+  return {x:(S.flip?7-f:f)*100+50,y:(S.flip?r:7-r)*100+50};
+}
+function arrow(uci,color,op,thin){
+  const a=sqXY(uci.slice(0,2)), b=sqXY(uci.slice(2,4));
+  const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy); if(!len) return '';
+  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+  const sw=thin?12:17, hw=thin?34:44, hl=thin?36:46, st=22;
+  const sx=a.x+ux*st, sy=a.y+uy*st, ex=b.x-ux*10, ey=b.y-uy*10, bx=ex-ux*hl, by=ey-uy*hl;
+  const pts=[[sx+px*sw/2,sy+py*sw/2],[bx+px*sw/2,by+py*sw/2],[bx+px*hw/2,by+py*hw/2],[ex,ey],[bx-px*hw/2,by-py*hw/2],[bx-px*sw/2,by-py*sw/2],[sx-px*sw/2,sy-py*sw/2]];
+  return `<polygon points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" style="fill:${color}" fill-opacity="${op}"/>`;
+}
+// Den stilling der vises: et træk i varianten, ellers partiets stilling ved S.cur
+function view(){
+  const G=S.game, v=S.v;
+  if(v&&v.idx>0){ const P=v.nodes[v.idx]; return {P,prev:v.nodes[v.idx-1],m:P.move,inVar:true}; }
+  const i=S.cur; return {P:G.pos[i],prev:i>0?G.pos[i-1]:null,m:i>0?G.moves[i]:null,inVar:false};
+}
+// Trækkets nummer står i stillingen før trækket
+const labelOf=(prev,m)=>prev.fen.split(' ')[5]+(m.color==='w'?'. ':'… ')+m.dsan;
+function pieceSvg(pc,cls){ return `<svg class="pc ${pc===pc.toUpperCase()?'w':'b'}${cls||''}" viewBox="0 0 100 100" aria-hidden="true"><use href="#pc-${pc.toLowerCase()}"/></svg>`; }
+function targets(from){
+  const P=view().P; if(P.terminal) return [];
+  return new Chess(P.fen).moves({square:from,verbose:true}).map(x=>x.to);
+}
+function renderBoard(){
+  const {P,prev,m}=view();
+  const map=parseFen(P.fen), tg=S.sel?targets(S.sel):[];
+  let html='';
+  for(let rr=0;rr<8;rr++) for(let ff=0;ff<8;ff++){
+    const r=S.flip?rr:7-rr, f=S.flip?7-ff:ff, sq=FILES[f]+(r+1), light=(f+r)%2===1;
+    const pc=map[sq];
+    let inner='';
+    if(m&&(sq===m.from||sq===m.to)) inner+='<span class="tint"></span>';
+    if(pc) inner+=pieceSvg(pc);
+    if(tg.includes(sq)) inner+=`<span class="hint${pc?' cap':''}"></span>`;
+    if(rr===7) inner+=`<span class="co f">${FILES[f]}</span>`;
+    if(ff===0) inner+=`<span class="co r">${r+1}</span>`;
+    if(m&&m.cls&&sq===m.to) inner+=badge(m.cls);
+    html+=`<div class="sq ${light?'l':'d'}${P.check&&P.ksq===sq?' check':''}${sq===S.sel?' sel':''}${sq===DRAG.from&&DRAG.moved?' src':''}" data-sq="${sq}">${inner}</div>`;
+  }
+  $('board').innerHTML=html;
+  $('board').setAttribute('aria-label',!m?'Skakbræt, udgangsstilling':`Skakbræt efter ${labelOf(prev,m)}`);
+  let svg='';
+  if(S.arrows){
+    if(m&&prev&&prev.best&&prev.best!==m.uci&&m.cls&&!['bog','bedste','brillant','fremragende'].includes(m.cls)) svg+=arrow(prev.best,'var(--k-best)',0.85,false);
+    if(P.best&&P.done) svg+=arrow(P.best,'var(--k-great)',0.6,true);
+  }
+  $('arrows').innerHTML=svg;
+}
+function moveLabel(i){ const G=S.game, m=G.moves[i]; return moveNo(i)+(m.color==='w'?'. ':'… ')+m.dsan; }
+function moveNo(i){ const G=S.game; const startNo=+(G.startFen.split(' ')[5]||1), startBlack=G.startFen.split(' ')[1]==='b';
+  return startNo+Math.floor((i-1+(startBlack?1:0))/2); }
+function renderEvalBar(){
+  const P=view().P, e=P.done?P.eval:null;
+  const wc=e?wcWhite(e):50;
+  const h=e&&e.type==='mate'?(e.side==='w'?100:0):Math.max(4,Math.min(96,wc));
+  $('ebFill').style.height=h+'%';
+  $('evalbar').classList.toggle('flip',S.flip);
+  const lbl=$('ebLbl'); const whiteAhead=wc>=50;
+  lbl.textContent=e?evalText(e).replace('+',''):'';
+  const atBottom=S.flip?!whiteAhead:whiteAhead;
+  lbl.className='eb-lbl '+(atBottom?'lo':'hi')+' '+(whiteAhead?'onw':'onb');
+}
+function renderPlayers(){
+  const G=S.game, H=G.headers;
+  const pl=c=>{
+    const nm=(c==='w'?H.White:H.Black)||(c==='w'?'Hvid':'Sort'); const elo=c==='w'?H.WhiteElo:H.BlackElo;
+    const st=playerStats(c);
+    const acc=st.acc==null?'…':fmtPct(st.acc)+' %';
+    return `<span class="dot ${c}"></span><span class="nm">${esc(nm)}</span>${elo&&elo!=='?'?`<span class="elo">${esc(elo)}</span>`:''}<span class="acc" title="Præcision">${acc}</span>`;
+  };
+  $('plTop').innerHTML=pl(S.flip?'w':'b');
+  $('plBot').innerHTML=pl(S.flip?'b':'w');
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+function pvSan(fen,pv,max){
+  const g=new Chess(fen), out=[];
+  for(const u of pv.slice(0,max)){
+    const mv=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});
+    if(!mv) break; out.push(dk(mv.san));
+  }
+  return out;
+}
+function fmtLine(fen,pv,max){
+  const sans=pvSan(fen,pv,max); if(!sans.length) return '';
+  const parts=fen.split(' '); let no=+parts[5], white=parts[1]==='w'; const out=[];
+  sans.forEach((s,k)=>{ if(white) out.push(no+'. '+s); else out.push((k===0?no+'… ':'')+s); if(!white) no++; white=!white; });
+  return out.join(' ');
+}
+const TEXT={
+  bog:s=>`${s} er et kendt åbningstræk.`,
+  brillant:s=>`${s} er brillant! Et stærkt offer, som motoren også vælger.`,
+  fremragende:s=>`${s} er fremragende. Det var det eneste gode træk i stillingen.`,
+  bedste:s=>`${s} er det bedste træk.`,
+  godt:s=>`${s} er et godt træk.`,
+  unoj:s=>`${s} er en unøjagtighed.`,
+  fejl:s=>`${s} er en fejl.`,
+  overset:s=>`${s} overser en chance. Modstanderen havde lige fejlet.`,
+  bommert:s=>`${s} er en bommert.`
+};
+function renderMoveCard(){
+  const {P,prev,m,inVar}=view(), el=$('moveCard');
+  const ev=P.done?P.eval:null;
+  const evHtml=`<span class="mc-eval ${ev&&wcWhite(ev)<50?'bv':'wv'}" title="Evaluering">${evalText(ev)}</span>`;
+  if(!m){
+    const line=P.done&&P.pv.length?`<div class="mc-line">Motorens plan: <b>${fmtLine(P.fen,P.pv,6)}</b></div>`:'';
+    el.innerHTML=`<span class="badge md" style="--kc:var(--muted)">•</span><div class="mc-title">Udgangsstilling</div>${evHtml}<div class="mc-text">Brug piletasterne, knapperne eller grafen for at gå gennem partiet. Flyt selv en brik for at prøve et andet træk.</div>${line}`;
+    return;
+  }
+  if(!m.cls){
+    el.innerHTML=`<span class="badge md" style="--kc:var(--line);--kf:var(--muted)">…</span><div class="mc-title"><b>${esc(labelOf(prev,m))}</b></div>${evHtml}<div class="mc-text">Trækket analyseres…</div>`;
+    return;
+  }
+  const san=`<b>${esc(m.dsan)}</b>`;
+  let text=TEXT[m.cls](san);
+  let bestTxt='';
+  const worse=prev.best&&prev.best!==m.uci&&!['bog','bedste','brillant','fremragende'].includes(m.cls);
+  if(worse){
+    const b=pvSan(prev.fen,[prev.best],1)[0];
+    if(b) bestTxt=` Bedste træk var <b>${esc(b)}</b>.`;
+  }
+  const result=P.terminal?(P.eval.type==='mate'?' Skakmat.':' Remis.'):'';
+  const line=!P.terminal&&worse&&prev.pv.length?`<div class="mc-line">Bedste linje: <b>${fmtLine(prev.fen,prev.pv,6)}</b> (${evalText(prev.eval)})</div>`
+    :(!P.terminal&&P.pv.length?`<div class="mc-line">Motorens fortsættelse: <b>${fmtLine(P.fen,P.pv,6)}</b></div>`:'');
+  // Første træk i en variant sammenlignes med det træk, der blev spillet i partiet
+  let played='';
+  if(inVar&&S.v.idx===1){ const pm=S.game.moves[S.v.base+1]; if(pm) played=` I partiet blev der spillet <b>${esc(pm.dsan)}</b>.`; }
+  const no=prev.fen.split(' ')[5]+(m.color==='w'?'.':'…');
+  el.innerHTML=`${badge(m.cls,'md')}<div class="mc-title">${inVar?'Variant · ':''}${no} ${CLS[m.cls].n}</div>${evHtml}<div class="mc-text">${text}${bestTxt}${result}${played}</div>${line}`;
+}
+function renderVar(){
+  const el=$('varCard'), v=S.v;
+  if(!v){ el.hidden=true; el.innerHTML=''; return; }
+  el.hidden=false;
+  let html=`<div class="var-head"><h2>Din variant</h2><button id="bExitVar" title="Tilbage til partiet (Esc)">Tilbage til partiet</button></div><div class="var-line">`;
+  for(let k=1;k<v.nodes.length;k++){
+    const m=v.nodes[k].move, no=v.nodes[k-1].fen.split(' ')[5];
+    if(m.color==='w') html+=`<span class="no">${no}.</span>`; else if(k===1) html+=`<span class="no">${no}…</span>`;
+    html+=`<button class="mv${k===v.idx?' active':''}" data-k="${k}">${m.cls?badge(m.cls,'sm'):'<span class="ph"></span>'}<span>${esc(m.dsan)}</span></button>`;
+  }
+  el.innerHTML=html+'</div>';
+}
+function renderMoveList(){
+  const G=S.game, el=$('moveList');
+  const startBlack=G.startFen.split(' ')[1]==='b';
+  let html='';
+  const cell=i=>{
+    const m=G.moves[i];
+    return `<button class="mv${i===S.cur?' active':''}" data-i="${i}">${m.cls?badge(m.cls,'sm'):'<span class="ph"></span>'}<span>${esc(m.dsan)}</span></button>`;
+  };
+  let i=1;
+  if(startBlack&&G.moves.length>1){ html+=`<span class="no">${moveNo(1)}.</span><span class="mv empty">…</span>${cell(1)}`; i=2; }
+  for(;i<G.moves.length;i+=2){
+    html+=`<span class="no">${moveNo(i)}.</span>${cell(i)}${i+1<G.moves.length?cell(i+1):'<span></span>'}`;
+  }
+  const res=G.headers.Result; if(res&&res!=='*') html+=`<span></span><span class="mv empty">${esc(res.replace('1/2','½'))}</span><span></span>`;
+  el.innerHTML=html;
+  scrollActive();
+}
+function scrollActive(){
+  const el=$('moveList'), a=el.querySelector('.mv.active');
+  if(!a){ if(S.cur===0) el.scrollTop=0; return; }
+  if(a.offsetTop<el.scrollTop) el.scrollTop=a.offsetTop-8;
+  else if(a.offsetTop+a.offsetHeight>el.scrollTop+el.clientHeight) el.scrollTop=a.offsetTop+a.offsetHeight-el.clientHeight+8;
+}
+function renderSummary(){
+  const G=S.game, H=G.headers, w=playerStats('w'), b=playerStats('b');
+  const nm=c=>esc((c==='w'?H.White:H.Black)||(c==='w'?'Hvid':'Sort'));
+  let html=`<div class="sum"><span></span><span class="hd" title="${nm('w')}">${nm('w')}</span><span class="hd" title="${nm('b')}">${nm('b')}</span>
+    <span class="lbl">Præcision</span><span class="big w">${w.acc==null?'…':fmtPct(w.acc)}</span><span class="big b">${b.acc==null?'…':fmtPct(b.acc)}</span>`;
+  ORDER.forEach((k,idx)=>{
+    const wc=w.counts[k], bc=b.counts[k];
+    html+=`<div class="row${idx===0?' first':''}" style="--kc:var(${CLS[k].v})"><span class="cat">${badge(k,'sm')}${CLS[k].n}</span><span class="n${wc?'':' z'}">${wc}</span><span class="n${bc?'':' z'}">${bc}</span></div>`;
+  });
+  html+='</div>';
+  $('summary').innerHTML=html;
+}
+function renderGraph(){
+  const G=S.game, el=$('graph'), W=Math.max(10,el.clientWidth), H=el.clientHeight||120;
+  const N=G.pos.length-1, pad=6;
+  const x=i=>pad+(N?i/N:0)*(W-2*pad);
+  const y=wc=>H-(wc/100)*(H-8)-4;
+  let last=-1; for(let i=0;i<=N;i++){ if(G.pos[i].done) last=i; else break; }
+  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">`;
+  svg+=`<rect x="0" y="0" width="${W}" height="${H}" style="fill:var(--g-b)"/>`;
+  if(last>=0){
+    let d=`M${x(0).toFixed(1)},${H} `;
+    d+=`L0,${H} L0,${y(wcWhite(G.pos[0].eval)).toFixed(1)} `;
+    for(let i=0;i<=last;i++) d+=`L${x(i).toFixed(1)},${y(wcWhite(G.pos[i].eval)).toFixed(1)} `;
+    if(last===N) d+=`L${W},${y(wcWhite(G.pos[N].eval)).toFixed(1)} L${W},${H} Z`;
+    else d+=`L${x(last).toFixed(1)},${H} Z`;
+    svg+=`<path d="${d}" style="fill:var(--g-w)"/>`;
+  }
+  svg+=`<line x1="0" x2="${W}" y1="${y(50)}" y2="${y(50)}" style="stroke:var(--g-mid)" stroke-width="1" stroke-dasharray="3 4"/>`;
+  svg+=`<line x1="${x(S.cur)}" x2="${x(S.cur)}" y1="0" y2="${H}" style="stroke:var(--accent)" stroke-width="2"/>`;
+  for(let i=1;i<=last;i++){
+    const m=G.moves[i];
+    if(!m||!m.cls||!['brillant','fremragende','fejl','overset','bommert'].includes(m.cls)) continue;
+    svg+=`<circle cx="${x(i).toFixed(1)}" cy="${y(wcWhite(G.pos[i].eval)).toFixed(1)}" r="${i===S.cur?5.5:4}" style="fill:var(${CLS[m.cls].v});stroke:var(--panel)" stroke-width="1.5"/>`;
+  }
+  svg+='</svg>';
+  el.innerHTML=svg;
+  el.setAttribute('aria-valuemax',N); el.setAttribute('aria-valuenow',S.cur);
+  el.setAttribute('aria-valuetext',S.cur===0?'Udgangsstilling':moveLabel(S.cur));
+}
+function renderHeader(){
+  const H=S.game.headers;
+  $('gameTitle').textContent=`${H.White||'Hvid'} – ${H.Black||'Sort'}`;
+  const bits=[];
+  if(H.Event&&H.Event!=='?') bits.push(H.Event);
+  if(H.Site&&H.Site!=='?') bits.push(H.Site);
+  if(H.Date&&!/^\?/.test(H.Date)) bits.push(H.Date.replace(/\.\?\?/g,''));
+  if(H.Result&&H.Result!=='*') bits.push('Resultat '+H.Result.replace('1/2','½'));
+  $('gameMeta').textContent=bits.join(' · ');
+}
+function renderView(){ renderBoard(); renderEvalBar(); renderMoveCard(); renderVar(); }
+function renderPosition(){ renderView(); renderGraph(); renderPlayers();
+  $('moveList').querySelectorAll('.mv.active').forEach(b=>b.classList.remove('active'));
+  const a=$('moveList').querySelector(`.mv[data-i="${S.cur}"]`); if(a) a.classList.add('active');
+  scrollActive();
+}
+function renderAnalysis(){ renderSummary(); renderMoveList(); renderView(); renderGraph(); renderPlayers(); }
+function go(i){
+  const N=S.game.pos.length-1; i=Math.max(0,Math.min(N,i));
+  if(i===S.cur) return;
+  // Frem spiller lyden for trækket der lige er udført, tilbage for trækket der tages tilbage
+  const from=S.cur; S.cur=i; S.sel=null; renderPosition(); playSound(i>from?i:from);
+}
+// Hop i partiet; forlader en eventuel variant
+function jump(i){
+  if(S.v){ S.cur=S.v.base; S.v=null; S.sel=null; if(i===S.cur){ renderPosition(); return; } }
+  go(i);
+}
+// Et skridt frem eller tilbage, inde i varianten hvis der er en
+function step(d){
+  const v=S.v;
+  if(!v){ go(S.cur+d); return; }
+  const k=v.idx+d;
+  if(k<0){ S.v=null; S.cur=v.base; go(v.base-1); if(v.base===0) renderPosition(); return; }
+  if(k>=v.nodes.length) return;
+  v.idx=k; S.sel=null; renderPosition();
+  const n=v.nodes[d>0?k:k+1];
+  if(n.move) playSoundFor(n.move,n);
+}
+function exitVar(){ if(!S.v) return; S.cur=S.v.base; S.v=null; S.sel=null; renderPosition(); }
+
+/* ---------- Egne træk og varianter ---------- */
+function userMove(from,to){
+  const G=S.game, P=view().P, g=new Chess(P.fen);
+  // Bønder forvandles altid til dronning
+  const mv=g.move({from,to,promotion:'q'}); if(!mv) return false;
+  const uci=mv.from+mv.to+(mv.promotion||'');
+  S.sel=null;
+  if(!S.v){
+    // Samme træk som i partiet: gå bare videre i partiet
+    const nm=G.moves[S.cur+1]; if(nm&&nm.uci===uci){ go(S.cur+1); return true; }
+    S.v={base:S.cur,nodes:[G.pos[S.cur]],idx:0};
+  }else{
+    const v=S.v, nx=v.nodes[v.idx+1];
+    if(nx&&nx.move.uci===uci){ step(1); return true; }
+    if(v.idx===0){ const nm=G.moves[v.base+1]; if(nm&&nm.uci===uci){ S.v=null; go(v.base+1); return true; } }
+    v.nodes.length=v.idx+1;
+  }
+  const node=mkPos(g);
+  if(node.terminal) node.done=true;
+  node.move={san:mv.san,dsan:dk(mv.san),uci,from:mv.from,to:mv.to,color:mv.color,piece:mv.piece,captured:mv.captured||null,cls:null,loss:null};
+  S.v.nodes.push(node); S.v.idx=S.v.nodes.length-1;
+  classifyVar(); renderPosition(); playSoundFor(node.move,node);
+  analyseVar();
+  return true;
+}
+// Samme skala som partiets træk; bogtræk og "overset" giver ikke mening i en variant
+function classifyVar(){
+  const n=S.v?S.v.nodes:[];
+  for(let k=1;k<n.length;k++){
+    const P=n[k-1], Q=n[k], m=Q.move;
+    if(m.cls||!P.done||!Q.done) continue;
+    const c=m.color, before=wcFor(P.eval,c), after=wcFor(Q.eval,c), isBest=m.uci===P.best;
+    const loss=isBest?0:Math.max(0,before-after);
+    let cls;
+    if(isBest||loss<1) cls=after>=50&&isSacrifice(m,Q.fen)?'brillant':'bedste';
+    else if(loss<5) cls='godt'; else if(loss<10) cls='unoj'; else if(loss<20) cls='fejl'; else cls='bommert';
+    m.cls=cls; m.loss=loss;
+  }
+}
+// Varianten har sin egen motor, så hovedanalysen kører videre imens
+const VE={eng:null,starting:null,busy:false,node:null,aborted:false};
+function varEngine(){
+  if(VE.eng&&!VE.eng.dead) return Promise.resolve(VE.eng);
+  if(!VE.starting) VE.starting=createEngine().then(e=>{ VE.eng=e; VE.starting=null; return e; },err=>{ VE.starting=null; throw err; });
+  return VE.starting;
+}
+// Den viste stilling først, så stillingen før den (til vurderingen), så resten
+function varTargets(){
+  const v=S.v; if(!v) return [];
+  const list=[v.nodes[v.idx]]; if(v.idx>0) list.push(v.nodes[v.idx-1]);
+  return list.concat(v.nodes).filter(n=>!n.done&&!n.terminal);
+}
+async function analyseVar(){
+  if(VE.busy){
+    // Afbryd en søgning, der ikke længere gælder den viste stilling
+    if(VE.node&&VE.eng&&varTargets()[0]!==VE.node){ VE.aborted=true; VE.eng.send('stop'); }
+    return;
+  }
+  VE.busy=true;
+  try{
+    const eng=await varEngine();
+    for(;;){
+      const n=varTargets()[0]; if(!n) break;
+      VE.node=n; VE.aborted=false;
+      const r=await eng.analyse(n.fen,eng.kind==='wasm'?S.depth:Math.min(S.depth,12));
+      VE.node=null;
+      if(VE.aborted||n.done) continue;
+      const l1=r.lines[1], l2=r.lines[2];
+      n.eval=toWhite(l1,n.turn)||{type:'cp',v:0};
+      n.best=r.best&&r.best!=='(none)'?r.best:null;
+      n.pv=l1?l1.pv:[];
+      n.second=l2?toWhite(l2,n.turn):null;
+      n.done=true;
+      if(S.v){ classifyVar(); renderView(); }
+    }
+  }catch(e){ if(VE.eng) VE.eng.terminate(); VE.eng=null; }
+  finally{ VE.busy=false; VE.node=null; }
+}
+
+/* ---------- Lyd ---------- */
+// Lydene syntetiseres med Web Audio, så der ikke skal hentes lydfiler: et blødt, dybt "tok" af lavpasfiltreret støj og en faldende sinustone.
+let AC=null, OUT=null, lastSnd=0;
+function audio(){
+  if(!AC){ const C=window.AudioContext||window.webkitAudioContext; if(!C) return null; try{ AC=new C(); }catch(e){ return null; } }
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+// Fælles udgang med kompressor, så samtidige lyde ikke klipper og forvrænger
+function out(ctx){
+  if(!OUT){
+    const c=ctx.createDynamicsCompressor(); c.threshold.value=-20; c.knee.value=12; c.ratio.value=4;
+    OUT=ctx.createGain(); OUT.gain.value=0.55; OUT.connect(c); c.connect(ctx.destination);
+  }
+  return OUT;
+}
+function tok(ctx,t,freq,gain,dur){
+  const n=Math.max(1,Math.floor(ctx.sampleRate*dur)), buf=ctx.createBuffer(1,n,ctx.sampleRate), d=buf.getChannelData(0);
+  for(let k=0;k<n;k++) d[k]=(Math.random()*2-1)*Math.pow(1-k/n,6);
+  const src=ctx.createBufferSource(); src.buffer=buf;
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=freq; lp.Q.value=0.5;
+  const g=ctx.createGain(); g.gain.value=gain*0.25;
+  src.connect(lp); lp.connect(g); g.connect(out(ctx)); src.start(t);
+  // Den dybe sinustone er selve brikkens bløde "bump"; et par millisekunders anslag fjerner klikket
+  const o=ctx.createOscillator(), og=ctx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(freq/4,t); o.frequency.exponentialRampToValueAtTime(freq/8,t+dur*1.5);
+  og.gain.setValueAtTime(0.0001,t); og.gain.exponentialRampToValueAtTime(gain,t+0.005); og.gain.exponentialRampToValueAtTime(0.0001,t+dur*2.2);
+  o.connect(og); og.connect(out(ctx)); o.start(t); o.stop(t+dur*2.3);
+}
+function tone(ctx,t,freq,dur,gain){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type='sine'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(gain,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(out(ctx)); o.start(t); o.stop(t+dur+0.02);
+}
+function playSound(i){ playSoundFor(i>0?S.game.moves[i]:null,S.game.pos[i]); }
+// m er trækket, P stillingen efter det
+function playSoundFor(m,P){
+  if(!S.sound) return;
+  const now=performance.now(); if(now-lastSnd<45) return; lastSnd=now;
+  const ctx=audio(); if(!ctx) return;
+  const t=ctx.currentTime+0.01;
+  if(!m){ tok(ctx,t,800,0.6,0.06); return; }
+  if(P.terminal){ tok(ctx,t,700,0.8,0.08); tone(ctx,t+0.08,392,0.6,0.12); tone(ctx,t+0.26,294,0.9,0.12); return; }
+  if(P.check){ tok(ctx,t,800,0.8,0.07); tone(ctx,t+0.03,587,0.3,0.06); return; }
+  if(m.captured){ tok(ctx,t,620,1.0,0.09); tok(ctx,t+0.045,950,0.55,0.06); return; }
+  if(m.san.startsWith('O-O')){ tok(ctx,t,850,0.75,0.07); tok(ctx,t+0.11,760,0.75,0.07); return; }
+  if(m.uci.length===5){ tok(ctx,t,850,0.75,0.07); tone(ctx,t+0.06,440,0.25,0.06); tone(ctx,t+0.15,659,0.3,0.06); return; }
+  tok(ctx,t,850,0.8,0.07);
+}
+
+/* ---------- Hændelser ---------- */
+function load(text){
+  const r=buildGame(text);
+  const msg=$('loadMsg');
+  if(r.err){ msg.textContent=r.err; msg.className='msg err'; return false; }
+  msg.className='msg'; msg.textContent=`Indlæst ${r.game.moves.length-1} halvtræk. Analysen kører i baggrunden.`;
+  S.game=r.game; S.cur=0; S.doneCount=0; S.v=null; S.sel=null;
+  renderHeader(); renderAnalysis();
+  analyse();
+  return true;
+}
+// Klik en brik og så et felt, eller træk brikken. from: feltet der trækkes fra, moved: musen har flyttet sig
+const DRAG={from:null,moved:false,wasSel:false,ghost:null};
+function bindBoard(){
+  const bd=$('board'), box=bd.parentElement;
+  const sqAt=e=>{
+    const r=bd.getBoundingClientRect();
+    const c=Math.floor((e.clientX-r.left)/r.width*8), w=Math.floor((e.clientY-r.top)/r.height*8);
+    if(c<0||c>7||w<0||w>7) return null;
+    return S.flip?FILES[7-c]+(w+1):FILES[c]+(8-w);
+  };
+  const place=e=>{
+    const r=box.getBoundingClientRect(), s=r.width/8;
+    DRAG.ghost.style.transform=`translate(${e.clientX-r.left-s/2}px,${e.clientY-r.top-s/2}px)`;
+  };
+  const end=()=>{
+    if(DRAG.ghost) DRAG.ghost.remove();
+    DRAG.from=null; DRAG.moved=false; DRAG.ghost=null;
+  };
+  bd.addEventListener('pointerdown',e=>{
+    if(e.button!==0||!S.game) return;
+    const sq=sqAt(e); if(!sq) return;
+    e.preventDefault();
+    if(S.sel&&S.sel!==sq&&targets(S.sel).includes(sq)){ userMove(S.sel,sq); return; }
+    const P=view().P, pc=parseFen(P.fen)[sq];
+    if(!pc||P.terminal||(pc===pc.toUpperCase())!==(P.turn==='w')){ if(S.sel){ S.sel=null; renderBoard(); } return; }
+    DRAG.wasSel=S.sel===sq; DRAG.from=sq; DRAG.moved=false;
+    S.sel=sq; renderBoard();
+    box.insertAdjacentHTML('beforeend',pieceSvg(pc,' ghost'));
+    DRAG.ghost=box.lastElementChild; DRAG.ghost.style.visibility='hidden';
+    try{ bd.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  bd.addEventListener('pointermove',e=>{
+    if(!DRAG.from) return;
+    if(!DRAG.moved){
+      DRAG.moved=true; DRAG.ghost.style.visibility='';
+      const src=bd.querySelector(`[data-sq="${DRAG.from}"]`); if(src) src.classList.add('src');
+    }
+    place(e);
+  });
+  bd.addEventListener('pointerup',e=>{
+    if(!DRAG.from) return;
+    const from=DRAG.from, moved=DRAG.moved, sq=sqAt(e);
+    end();
+    if(sq&&sq!==from&&targets(from).includes(sq)){ userMove(from,sq); return; }
+    // Et klik på den allerede valgte brik fravælger den
+    if(!moved&&DRAG.wasSel) S.sel=null;
+    renderBoard();
+  });
+  bd.addEventListener('pointercancel',()=>{ if(DRAG.from){ end(); renderBoard(); } });
+}
+function bind(){
+  $('bStart').onclick=()=>jump(0);
+  $('bPrev').onclick=()=>step(-1);
+  $('bNext').onclick=()=>step(1);
+  $('bEnd').onclick=()=>jump(S.game.pos.length-1);
+  $('varCard').addEventListener('click',e=>{
+    if(e.target.closest('#bExitVar')){ exitVar(); return; }
+    const b=e.target.closest('.mv[data-k]'); if(!b||!S.v) return;
+    const k=+b.dataset.k; if(k===S.v.idx) return;
+    const fwd=k>S.v.idx; S.v.idx=k; S.sel=null; renderPosition();
+    const n=S.v.nodes[fwd?k:k+1]; if(n&&n.move) playSoundFor(n.move,n);
+  });
+  bindBoard();
+  $('bFlip').onclick=()=>{ S.flip=!S.flip; renderPosition(); };
+  $('optArrows').onchange=e=>{ S.arrows=e.target.checked; renderBoard(); };
+  try{ if(localStorage.getItem('skak-lyd')==='0'){ S.sound=false; $('optSound').checked=false; } }catch(e){}
+  $('optSound').onchange=e=>{ S.sound=e.target.checked; try{ localStorage.setItem('skak-lyd',S.sound?'1':'0'); }catch(err){} if(S.sound) playSound(S.cur); };
+  $('depth').onchange=e=>{ S.depth=+e.target.value; };
+  $('loadBtn').onclick=()=>{ S.depth=+$('depth').value; load($('pgn').value); };
+  $('sampleBtn').onclick=()=>{ $('pgn').value=SAMPLE_PGN; S.depth=+$('depth').value; load(SAMPLE_PGN); };
+  $('moveList').addEventListener('click',e=>{ const b=e.target.closest('.mv[data-i]'); if(b) jump(+b.dataset.i); });
+  document.addEventListener('keydown',e=>{
+    // Kun tekstfelter og rullemenuer beholder piletasterne selv, så navigationen virker efter klik på knapper og afkrydsningsfelter
+    const t=e.target; if(t&&(t.tagName==='TEXTAREA'||t.tagName==='SELECT'||(t.tagName==='INPUT'&&t.type!=='checkbox'))) return;
+    if(e.altKey||e.ctrlKey||e.metaKey) return;
+    const N=S.game.pos.length-1;
+    if(e.key==='ArrowLeft'){ step(-1); e.preventDefault(); }
+    else if(e.key==='ArrowRight'){ step(1); e.preventDefault(); }
+    else if(e.key==='Home'||e.key==='ArrowUp'){ jump(0); e.preventDefault(); }
+    else if(e.key==='End'||e.key==='ArrowDown'){ jump(N); e.preventDefault(); }
+    else if(e.key==='Escape'){ if(S.sel){ S.sel=null; renderBoard(); } else exitVar(); }
+    else if(e.key==='f'){ S.flip=!S.flip; renderPosition(); }
+  });
+  const gr=$('graph');
+  const pick=e=>{ const r=gr.getBoundingClientRect(), N=S.game.pos.length-1, pad=6;
+    const f=(e.clientX-r.left-pad)/Math.max(1,r.width-2*pad); jump(Math.round(Math.max(0,Math.min(1,f))*N)); };
+  gr.addEventListener('pointerdown',e=>{ pick(e); gr.setPointerCapture(e.pointerId); });
+  gr.addEventListener('pointermove',e=>{ if(e.buttons&1) pick(e); });
+  if(window.ResizeObserver) new ResizeObserver(()=>{ if(S.game) renderGraph(); }).observe(gr);
+}
+
+buildBook();
+bind();
+$('pgn').value=SAMPLE_PGN;
+load(SAMPLE_PGN);
+})();
+</script>
